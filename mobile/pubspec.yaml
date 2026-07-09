@@ -1,0 +1,38 @@
+name: photobooth_app
+description: "Aplikasi Photobooth mobile client-server (Tugas Besar Mobile Programming)"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Networking ke REST API backend
+  http: ^1.2.2
+
+  # Penyimpanan token JWT secara lokal di device
+  shared_preferences: ^2.3.2
+
+  # Akses kamera untuk Live Camera & Countdown screen
+  camera: ^0.11.0+2
+
+  # Ambil foto dari galeri sebagai alternatif kamera
+  image_picker: ^1.1.2
+
+  # Format tanggal untuk My Gallery
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
