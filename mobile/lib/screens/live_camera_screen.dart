@@ -22,8 +22,15 @@ class LiveCameraScreen extends StatefulWidget {
 class _LiveCameraScreenState extends State<LiveCameraScreen> {
   CameraController? _controller;
   Future<void>? _initFuture;
+  List<CameraDescription> _cameras = [];
+  int _cameraIndex = 0;
   bool _showCountdown = false;
   String _selectedLiveEffect = 'Normal';
+  int _selectedCountdown = 3;
+
+int _selectedLayout = 4;
+
+bool _isFrontCamera = true;
   late BoothDraft _draft;
 
   @override
@@ -35,13 +42,12 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
 
   Future<void> _initCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-      final front = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.front,
-        orElse: () => cameras.first,
-      );
-      _controller = CameraController(front, ResolutionPreset.high, enableAudio: false);
+    _cameras = await availableCameras();
+      _controller = CameraController(
+  _cameras[_cameraIndex],
+  ResolutionPreset.high,
+  enableAudio: false,
+);
       _initFuture = _controller!.initialize();
       if (mounted) setState(() {});
     } catch (e) {
@@ -49,6 +55,27 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       debugPrint('Kamera tidak tersedia: $e');
     }
   }
+
+  Future<void> _switchCamera() async {
+  if (_cameras.length < 2) return;
+
+  _cameraIndex =
+      (_cameraIndex + 1) % _cameras.length;
+
+  await _controller?.dispose();
+
+  _controller = CameraController(
+    _cameras[_cameraIndex],
+    ResolutionPreset.high,
+    enableAudio: false,
+  );
+
+  _initFuture = _controller!.initialize();
+
+  if (mounted) {
+    setState(() {});
+  }
+}
 
   @override
   void dispose() {
@@ -111,56 +138,150 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black45,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_draft.capturedPhotos.length}/${_draft.requiredShotCount} foto',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  IconButton.filled(
-                    onPressed: _openLiveEffects,
-                    style: IconButton.styleFrom(backgroundColor: Colors.black45),
-                    icon: const Icon(Icons.auto_awesome, color: Colors.white),
-                  ),
-                ],
+
+  Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 6,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.black45,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      '${_draft.capturedPhotos.length}/${_draft.requiredShotCount} foto',
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  ),
+
+  Row(
+    children: [
+
+      IconButton.filled(
+        onPressed: _switchCamera,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.black45,
+        ),
+        icon: const Icon(Icons.flip_camera_android),
+      ),
+
+      const SizedBox(width: 8),
+
+      IconButton.filled(
+        onPressed: _openLiveEffects,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.black45,
+        ),
+        icon: const Icon(Icons.auto_awesome),
+      ),
+    ],
+  ),
+],
               ),
             ),
           ),
 
           // Shutter button
-          Positioned(
-            bottom: 32,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: _showCountdown ? null : _captureWithCountdown,
-                child: Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
+          // Bottom Controls
+Positioned(
+  bottom: 24,
+  left: 0,
+  right: 0,
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+
+      // ================= TIMER =================
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+
+            const Text(
+              "Countdown",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
+
+            const SizedBox(height: 10),
+
+            Wrap(
+              spacing: 10,
+              children: [
+
+                ChoiceChip(
+                  label: const Text("3 s"),
+                  selected: _selectedCountdown == 3,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedCountdown = 3;
+                    });
+                  },
+                ),
+
+                ChoiceChip(
+                  label: const Text("5 s"),
+                  selected: _selectedCountdown == 5,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedCountdown = 5;
+                    });
+                  },
+                ),
+
+                ChoiceChip(
+                  label: const Text("10 s"),
+                  selected: _selectedCountdown == 10,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedCountdown = 10;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+
+      // ================= SHUTTER =================
+      GestureDetector(
+        onTap: _showCountdown ? null : _captureWithCountdown,
+        child: Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 4,
+            ),
           ),
+          child: Container(
+            margin: const EdgeInsets.all(6),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+),
 
           if (_showCountdown)
-            CountdownOverlay(seconds: 3, onFinished: _onCountdownFinished),
+            CountdownOverlay(seconds: _selectedCountdown, onFinished: _onCountdownFinished),
         ],
       ),
     );
@@ -180,7 +301,14 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       future: _initFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          return CameraPreview(_controller!);
+          return FittedBox(
+  fit: BoxFit.cover,
+  child: SizedBox(
+    width: _controller!.value.previewSize!.height,
+    height: _controller!.value.previewSize!.width,
+    child: CameraPreview(_controller!),
+  ),
+);
         }
         return const Center(child: CircularProgressIndicator(color: AppColors.primary));
       },
