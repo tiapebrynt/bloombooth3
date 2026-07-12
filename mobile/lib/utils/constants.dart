@@ -7,7 +7,4 @@ class AppConstants {
 
   // Base URL tanpa /api, dipakai untuk load gambar dari /uploads
   static const String storageUrl = 'http://10.0.2.2:3000';
-
-  static const String tokenKey = 'auth_token';
-  static const String userKey = 'auth_user';
 }

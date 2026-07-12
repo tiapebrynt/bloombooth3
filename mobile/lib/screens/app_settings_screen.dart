@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/app_settings_model.dart';
 import '../models/user_model.dart';
 import '../services/settings_service.dart';
-import '../services/auth_service.dart';
+import '../services/profile_service.dart';
 import '../services/api_client.dart';
 import '../utils/theme.dart';
 import '../widgets/state_views.dart';
-import 'login_screen.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -25,7 +24,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   Future<_SettingsBundle> _load() async {
-    final user = await AuthService.me();
+    final user = await ProfileService.get();
     final settings = await SettingsService.get();
     return _SettingsBundle(user, settings);
   }
@@ -41,13 +40,32 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await AuthService.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
+  Future<void> _renameProfile(UserModel user) async {
+    final controller = TextEditingController(text: user.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ubah Nama'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
     );
+    if (newName != null && newName.isNotEmpty) {
+      try {
+        final updated = await ProfileService.update(name: newName);
+        setState(() {
+          _future = _future.then((bundle) => _SettingsBundle(updated, bundle.settings));
+        });
+      } on ApiException catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
   }
 
   @override
@@ -85,12 +103,18 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                       child: Icon(Icons.person, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(user.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(user.email, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(user.email, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: AppColors.textMuted),
+                      onPressed: () => _renameProfile(user),
                     ),
                   ],
                 ),
@@ -175,17 +199,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                icon: const Icon(Icons.logout),
-                label: const Text('Keluar'),
               ),
             ],
           );

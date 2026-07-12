@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import '../utils/theme.dart';
-import 'login_screen.dart';
 import 'home_shell.dart';
 
+/// Splash screen singkat sebelum masuk ke aplikasi. Tidak ada proses
+/// login/register di aplikasi ini, jadi langsung diarahkan ke HomeShell.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -15,17 +15,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _goToHome();
   }
 
-  Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    final loggedIn = await AuthService.isLoggedIn();
+  Future<void> _goToHome() async {
+    await Future.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => loggedIn ? const HomeShell() : const LoginScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const HomeShell()),
     );
   }
 

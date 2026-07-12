@@ -14,9 +14,6 @@ dependencies:
   # Networking ke REST API backend
   http: ^1.2.2
 
-  # Penyimpanan token JWT secara lokal di device
-  shared_preferences: ^2.3.2
-
   # Akses kamera untuk Live Camera & Countdown screen
   camera: ^0.11.0+2
 
