@@ -1,16 +1,17 @@
+const { DEFAULT_USER_ID } = require('../config/constants');
 const SessionModel = require('../models/sessionModel');
 const PhotoModel = require('../models/photoModel');
 const DecorationModel = require('../models/decorationModel');
 
 // GET /api/sessions -> My Gallery (list semua strip milik user login)
 exports.getAll = (req, res) => {
-  const sessions = SessionModel.findAllByUser(req.user.id);
+  const sessions = SessionModel.findAllByUser(DEFAULT_USER_ID);
   res.json({ success: true, data: sessions });
 };
 
 // GET /api/sessions/:id -> Strip Detail (lengkap dengan photos & decorations)
 exports.getOne = (req, res) => {
-  if (!SessionModel.belongsToUser(req.params.id, req.user.id)) {
+  if (!SessionModel.belongsToUser(req.params.id, DEFAULT_USER_ID)) {
     return res.status(404).json({ success: false, message: 'Strip tidak ditemukan' });
   }
   const session = SessionModel.findDetailById(req.params.id);
@@ -21,7 +22,7 @@ exports.getOne = (req, res) => {
 exports.create = (req, res) => {
   const { frame_id, title, layout_type, photos } = req.body;
   const session = SessionModel.create({
-    user_id: req.user.id,
+    user_id: DEFAULT_USER_ID,
     frame_id,
     title,
     layout_type,
@@ -47,7 +48,7 @@ exports.create = (req, res) => {
 
 // PUT /api/sessions/:id -> Decorate Strip (ganti frame/judul) atau tandai favorit
 exports.update = (req, res) => {
-  if (!SessionModel.belongsToUser(req.params.id, req.user.id)) {
+  if (!SessionModel.belongsToUser(req.params.id, DEFAULT_USER_ID)) {
     return res.status(404).json({ success: false, message: 'Strip tidak ditemukan' });
   }
   const updated = SessionModel.update(req.params.id, req.body);
@@ -56,7 +57,7 @@ exports.update = (req, res) => {
 
 // DELETE /api/sessions/:id -> hapus dari My Gallery
 exports.remove = (req, res) => {
-  if (!SessionModel.belongsToUser(req.params.id, req.user.id)) {
+  if (!SessionModel.belongsToUser(req.params.id, DEFAULT_USER_ID)) {
     return res.status(404).json({ success: false, message: 'Strip tidak ditemukan' });
   }
   SessionModel.remove(req.params.id);
@@ -67,7 +68,7 @@ exports.remove = (req, res) => {
 
 // POST /api/sessions/:id/photos -> tambah hasil jepretan Live Camera ke strip
 exports.addPhoto = (req, res) => {
-  if (!SessionModel.belongsToUser(req.params.id, req.user.id)) {
+  if (!SessionModel.belongsToUser(req.params.id, DEFAULT_USER_ID)) {
     return res.status(404).json({ success: false, message: 'Strip tidak ditemukan' });
   }
   const photo = PhotoModel.create({ session_id: req.params.id, ...req.body });
@@ -78,7 +79,7 @@ exports.addPhoto = (req, res) => {
 
 // POST /api/sessions/:id/decorations -> Decorate Strip (tambah stiker/teks)
 exports.addDecoration = (req, res) => {
-  if (!SessionModel.belongsToUser(req.params.id, req.user.id)) {
+  if (!SessionModel.belongsToUser(req.params.id, DEFAULT_USER_ID)) {
     return res.status(404).json({ success: false, message: 'Strip tidak ditemukan' });
   }
   const decoration = DecorationModel.create({ session_id: req.params.id, ...req.body });

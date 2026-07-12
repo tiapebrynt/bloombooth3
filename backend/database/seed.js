@@ -1,4 +1,18 @@
 const db = require('../src/config/database');
+const { DEFAULT_USER_ID } = require('../src/config/constants');
+
+// Aplikasi tidak memakai login/register, tapi tabel `photo_sessions` dan
+// `app_settings` tetap berelasi ke `users` lewat foreign key. Karena itu
+// perlu ada 1 baris default user supaya relasi tersebut valid.
+const existingUser = db.prepare(`SELECT id FROM users WHERE id = ?`).get(DEFAULT_USER_ID);
+if (!existingUser) {
+  db.prepare(
+    `INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)`
+  ).run(DEFAULT_USER_ID, 'Guest User', 'guest@photobooth.local', '-', 'user');
+  console.log('Seeded default user (id=1)');
+} else {
+  console.log('Default user sudah ada, skip seeding');
+}
 
 const frames = [
   { name: 'Classic Strip', layout_type: '4-cut', thumbnail_path: '/seed/frames/classic.png' },

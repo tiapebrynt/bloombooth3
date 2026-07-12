@@ -1,20 +1,8 @@
 const db = require('../config/database');
 
 const UserModel = {
-  create({ name, email, password, role = 'user' }) {
-    const stmt = db.prepare(
-      `INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`
-    );
-    const info = stmt.run(name, email, password, role);
-    return this.findById(info.lastInsertRowid);
-  },
-
   findById(id) {
     return db.prepare(`SELECT * FROM users WHERE id = ?`).get(id);
-  },
-
-  findByEmail(email) {
-    return db.prepare(`SELECT * FROM users WHERE email = ?`).get(email);
   },
 
   update(id, { name, avatar_path }) {

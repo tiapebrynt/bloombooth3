@@ -1,3 +1,4 @@
+const { DEFAULT_USER_ID } = require('../config/constants');
 const PhotoModel = require('../models/photoModel');
 const SessionModel = require('../models/sessionModel');
 
@@ -7,7 +8,7 @@ function assertOwnership(req, res) {
     res.status(404).json({ success: false, message: 'Foto tidak ditemukan' });
     return null;
   }
-  if (!SessionModel.belongsToUser(photo.session_id, req.user.id)) {
+  if (!SessionModel.belongsToUser(photo.session_id, DEFAULT_USER_ID)) {
     res.status(403).json({ success: false, message: 'Tidak memiliki akses ke foto ini' });
     return null;
   }

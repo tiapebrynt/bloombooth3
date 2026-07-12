@@ -1,3 +1,4 @@
+const { DEFAULT_USER_ID } = require('../config/constants');
 const DecorationModel = require('../models/decorationModel');
 const SessionModel = require('../models/sessionModel');
 
@@ -7,7 +8,7 @@ function assertOwnership(req, res) {
     res.status(404).json({ success: false, message: 'Dekorasi tidak ditemukan' });
     return null;
   }
-  if (!SessionModel.belongsToUser(decoration.session_id, req.user.id)) {
+  if (!SessionModel.belongsToUser(decoration.session_id, DEFAULT_USER_ID)) {
     res.status(403).json({ success: false, message: 'Tidak memiliki akses ke dekorasi ini' });
     return null;
   }

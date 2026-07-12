@@ -5,8 +5,7 @@ const path = require('path');
 
 require('./config/database'); // inisialisasi & migrasi skema saat startup
 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 const frameRoutes = require('./routes/frameRoutes');
 const filterRoutes = require('./routes/filterRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
@@ -33,8 +32,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/frames', frameRoutes);
 app.use('/api/filters', filterRoutes);
 app.use('/api/sessions', sessionRoutes);
