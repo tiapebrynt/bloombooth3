@@ -79,15 +79,17 @@ mobile/lib/
 | Vibe Lighting              | `vibe_lighting_screen.dart`       | **Read** filter vibe lighting + slider intensitas  |
 | Beauty Enhancement          | `beauty_enhancement_screen.dart` | Atur smoothing/brighten (dikirim saat simpan)     |
 | Final Preview                | `final_preview_screen.dart`      | **Create** strip baru + upload foto ke backend    |
-| My Gallery                    | `my_gallery_screen.dart`          | **Read** semua strip milik user, search            |
+| My Gallery                    | `my_gallery_screen.dart`          | **Read** semua strip tersimpan, search             |
 | Strip Detail                    | `strip_detail_screen.dart`        | **Read** detail, **Update** judul/favorit, **Delete** |
 | Decorate Strip                    | `decorate_strip_screen.dart`      | **Create/Update/Delete** dekorasi (stiker/teks)   |
-| App Settings                        | `app_settings_screen.dart`        | **Read/Update** preferensi user, logout            |
+| App Settings                        | `app_settings_screen.dart`        | **Read/Update** profil & preferensi user           |
+
+> Aplikasi ini tidak memiliki layar Login/Register — begitu dibuka, aplikasi langsung menampilkan Splash Screen singkat lalu masuk ke halaman utama (Booth/Gallery/Settings).
 
 ## 6. Alur Penggunaan Aplikasi
 
-1. **Register/Login** → dapat token JWT (disimpan di `shared_preferences`).
+1. Buka aplikasi → Splash Screen singkat → langsung masuk ke halaman utama (tidak ada login/register).
 2. Tab **Booth** → `Live Camera` → jepret sejumlah foto sesuai layout → `Frame Selection` → `Filter Library` → `Vibe Lighting` → `Beauty Enhancement` → `Final Preview`.
 3. Di **Final Preview**, tekan "Simpan ke My Gallery" → tiap foto di-upload ke `/api/uploads`, lalu strip dibuat via `POST /api/sessions`.
-4. Tab **My Gallery** menampilkan seluruh strip milik user → tap salah satu → **Strip Detail** → bisa ubah judul, tandai favorit, hapus, atau lanjut ke **Decorate Strip** untuk menambah stiker/teks.
-5. Tab **Settings** menampilkan profil & preferensi (resolusi kamera, watermark, durasi countdown, live effects) yang tersimpan per user di backend.
+4. Tab **My Gallery** menampilkan seluruh strip tersimpan → tap salah satu → **Strip Detail** → bisa ubah judul, tandai favorit, hapus, atau lanjut ke **Decorate Strip** untuk menambah stiker/teks.
+5. Tab **Settings** menampilkan profil & preferensi (resolusi kamera, watermark, durasi countdown, live effects).

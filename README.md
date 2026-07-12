@@ -12,11 +12,11 @@ Photobooth App memungkinkan pengguna untuk:
 1. Mengambil beberapa foto berturut-turut lewat kamera device (dengan hitung mundur/*countdown*).
 2. Memilih **frame**, **filter warna**, **vibe lighting**, dan **beauty enhancement**.
 3. Melihat **Final Preview** hasil strip foto sebelum disimpan.
-4. Menyimpan strip ke **My Gallery** (tersimpan permanen di backend, terhubung ke akun pengguna).
+4. Menyimpan strip ke **My Gallery** (tersimpan permanen di backend).
 5. Membuka kembali strip di **Strip Detail**, mengedit judul/favorit, atau menambah **dekorasi** (stiker/emoji/teks) lewat **Decorate Strip**.
 6. Mengatur preferensi lewat **App Settings** (resolusi kamera, watermark, durasi countdown, live effects).
 
-Semua data (akun, strip foto, foto individual, frame, filter, dekorasi, dan pengaturan) disimpan di server lewat REST API — bukan hanya di local storage — sehingga memenuhi ketentuan **arsitektur client-server**.
+Aplikasi ini **tidak memakai fitur login/register** — user langsung masuk ke aplikasi tanpa autentikasi, sehingga alur pemakaian jadi lebih singkat untuk kebutuhan demo/tugas besar. Semua data (strip foto, foto individual, frame, filter, dekorasi, dan pengaturan) tetap disimpan di server lewat REST API — bukan hanya di local storage — sehingga tetap memenuhi ketentuan **arsitektur client-server**. Secara teknis, backend tetap punya 1 baris "default user" di tabel `users` supaya relasi antar tabel (`photo_sessions.user_id`, `app_settings.user_id`) tetap terjaga tanpa perlu proses login di sisi aplikasi.
 
 ---
 
@@ -27,7 +27,6 @@ Semua data (akun, strip foto, foto individual, frame, filter, dekorasi, dan peng
 | **Client (mobile)** | Flutter (Dart), package: `http`, `camera`, `image_picker`, `shared_preferences`, `intl` |
 | **Server (API)**    | Node.js + Express.js                                                     |
 | **Database**         | SQLite (`better-sqlite3`) — file-based, tanpa perlu instalasi DB server terpisah |
-| **Autentikasi**       | JWT (`jsonwebtoken`) + password hashing (`bcryptjs`)                      |
 | **Upload File**        | `multer` (upload foto/gambar ke server, disajikan lewat static folder `/uploads`) |
 | **Version Control**    | Git                                                                       |
 
@@ -44,7 +43,7 @@ photobooth-app/
 │   │   ├── config/      # koneksi DB & schema
 │   │   ├── models/       # query layer (7 tabel)
 │   │   ├── controllers/  # logic tiap resource
-│   │   ├── middleware/    # JWT auth, upload
+│   │   ├── middleware/    # upload (multer)
 │   │   └── routes/        # endpoint REST
 │   ├── database/          # seeder + file SQLite (dibuat otomatis)
 │   └── README.md           # panduan setup & daftar endpoint backend
@@ -80,13 +79,13 @@ filters          (1) ────< (N) photos
 
 ### Rincian Kolom
 
-**`users`** — akun pengguna
+**`users`** — profil pengguna. *Catatan: aplikasi tidak punya fitur login/register, jadi tabel ini hanya berisi 1 baris "default user" (id=1) yang otomatis dibuat oleh seeder — fungsinya menjaga relasi FK ke `photo_sessions` dan `app_settings` tetap valid.*
 | Kolom       | Tipe    | Keterangan            |
 |-------------|---------|--------------------------|
 | id          | INTEGER | Primary Key              |
-| name        | TEXT    | Nama lengkap             |
-| email       | TEXT    | Unik, dipakai login      |
-| password    | TEXT    | Hash bcrypt              |
+| name        | TEXT    | Nama tampilan (bisa diubah di App Settings) |
+| email       | TEXT    | Unik (tidak dipakai untuk login)      |
+| password    | TEXT    | Tidak dipakai (kolom sisa skema, diisi `-`) |
 | role        | TEXT    | Default `user`           |
 | avatar_path | TEXT    | Path foto profil         |
 
@@ -183,7 +182,7 @@ Panduan permission kamera & konfigurasi base URL ada di [`mobile/README.md`](mob
 
 | Entitas          | Create | Read | Update | Delete |
 |-------------------|:------:|:----:|:------:|:------:|
-| Users (auth)      | ✅ (register) | ✅ (profil/me) | ✅ (nama/avatar) | – |
+| Profile (default user) | – (otomatis via seeder) | ✅ (`/api/profile`) | ✅ (nama/avatar) | – |
 | Frames            | ✅ | ✅ | ✅ | ✅ (soft delete) |
 | Filters           | ✅ | ✅ | ✅ | ✅ |
 | Photo Sessions (strip) | ✅ (Final Preview) | ✅ (My Gallery, Strip Detail) | ✅ (judul, favorit, frame) | ✅ |
@@ -197,12 +196,12 @@ Panduan permission kamera & konfigurasi base URL ada di [`mobile/README.md`](mob
 
 Checklist yang perlu disiapkan sebelum presentasi (lihat ketentuan tugas besar):
 
-- [ ] **Screenshot aplikasi berjalan** — simpan di `docs/screenshots/` (login, live camera, my gallery, strip detail, dll).
+- [ ] **Screenshot aplikasi berjalan** — simpan di `docs/screenshots/` (live camera, my gallery, strip detail, decorate strip, settings, dll).
 - [ ] **Kode program** — sudah lengkap di `backend/` dan `mobile/lib/`, tinggal ditunjukkan/dijelaskan per bagian saat presentasi.
 - [ ] **Penjelasan ringkas app** — gunakan bagian "1. Ringkasan Aplikasi" di README ini sebagai bahan slide.
 - [ ] **Teknologi yang digunakan** — gunakan tabel di bagian "2. Teknologi yang Digunakan".
 - [ ] **Struktur tabel database** — gunakan bagian "4. Struktur Database" (bisa langsung screenshot tabel di atas atau gambar ulang sebagai diagram ERD di slide).
-- [ ] **Demo alur aplikasi** — jalankan backend (`npm start`) lalu jalankan app Flutter, demokan alur: Register/Login → Live Camera → pilih Frame/Filter/Vibe/Beauty → Final Preview → simpan → My Gallery → Strip Detail → Decorate Strip → App Settings.
+- [ ] **Demo alur aplikasi** — jalankan backend (`npm start`) lalu jalankan app Flutter, demokan alur: buka app (langsung tanpa login) → Live Camera → pilih Frame/Filter/Vibe/Beauty → Final Preview → simpan → My Gallery → Strip Detail → Decorate Strip → App Settings.
 
 ---
 
