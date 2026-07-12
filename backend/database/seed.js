@@ -15,10 +15,31 @@ if (!existingUser) {
 }
 
 const frames = [
-  { name: 'Classic Strip', layout_type: '4-cut', thumbnail_path: '/seed/frames/classic.png' },
-  { name: 'Polaroid Duo', layout_type: '2-cut', thumbnail_path: '/seed/frames/polaroid.png' },
-  { name: 'Party Grid', layout_type: '6-cut', thumbnail_path: '/seed/frames/party.png' },
-  { name: 'Minimalist White', layout_type: '4-cut', thumbnail_path: '/seed/frames/minimalist.png' },
+  {
+    name: '2 Strip',
+    layout_type: '2-strip',
+    thumbnail_path: '/seed/frames/2strip.png',
+  },
+  {
+    name: '4 Strip',
+    layout_type: '4-strip',
+    thumbnail_path: '/seed/frames/4strip.png',
+  },
+  {
+    name: '6 Strip',
+    layout_type: '6-strip',
+    thumbnail_path: '/seed/frames/6strip.png',
+  },
+  {
+    name: 'Polaroid',
+    layout_type: 'polaroid',
+    thumbnail_path: '/seed/frames/polaroid.png',
+  },
+  {
+    name: 'Landscape',
+    layout_type: 'landscape',
+    thumbnail_path: '/seed/frames/landscape.png',
+  },
 ];
 
 const filters = [
