@@ -4,6 +4,7 @@ import 'dart:io';
 /// Live Camera -> Frame Selection -> Filter Library -> Vibe Lighting
 /// -> Beauty Enhancement -> Final Preview (baru di-submit ke backend).
 class BoothDraft {
+  
   List<File> capturedPhotos = [];
   String layoutType;
   int? frameId;

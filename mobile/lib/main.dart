@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'utils/theme.dart';
-import 'screens/splash_screen.dart';
+import 'screens/home_screen.dart'; // 1. Tambahkan import HomeScreen
 
 void main() {
   runApp(const PhotoboothApp());
@@ -15,7 +15,7 @@ class PhotoboothApp extends StatelessWidget {
       title: 'Photobooth App',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const SplashScreen(),
+      home: const HomeScreen(), // 2. Ganti dari SplashScreen ke HomeScreen
     );
   }
 }
