@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../utils/theme.dart';
-import 'home_shell.dart';
+import '../utils/theme.dart'; 
+import 'home_screen.dart'; 
 
-/// Splash screen singkat sebelum masuk ke aplikasi. Tidak ada proses
-/// login/register di aplikasi ini, jadi langsung diarahkan ke HomeShell.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -19,29 +17,49 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _goToHome() async {
-    await Future.delayed(const Duration(milliseconds: 900));
+    await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
+    
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeShell()),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.gradient),
-      child: const Center(
+    // Mengunci warna pilihanmu: RGB(255, 111, 145)
+    const customPink = Color.fromARGB(255, 255, 111, 145);
+
+    return Scaffold(
+      backgroundColor: Colors.white, 
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.camera_alt_rounded, size: 72, color: AppColors.primary),
-            SizedBox(height: 16),
-            Text(
-              'Photobooth',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textDark),
+            // 1. Teks BloomBooth (Bold & Warna Custom Pink)
+            const Text(
+              'BloomBooth',
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.bold, // Efek Bold pada teks
+                letterSpacing: 2.0,
+                color: customPink, 
+              ),
             ),
-            SizedBox(height: 24),
-            CircularProgressIndicator(color: AppColors.primary),
+            const SizedBox(height: 32),
+            
+            // 2. Animasi Loading Garis (LinearProgressIndicator)
+            SizedBox(
+              width: 150, // Mengatur panjang garis loading agar tidak memenuhi layar
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10), // Membuat ujung garis agak membulat rapi
+                child: const LinearProgressIndicator(
+                  minHeight: 6, // Mengatur ketebalan garis ("Bold")
+                  backgroundColor: Color.fromARGB(50, 255, 111, 145), // Latar belakang garis versi agak transparan
+                  valueColor: AlwaysStoppedAnimation<Color>(customPink), // Warna utama garis jalan
+                ),
+              ),
+            ),
           ],
         ),
       ),

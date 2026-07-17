@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'utils/theme.dart';
-import 'screens/home_screen.dart'; // 1. Tambahkan import HomeScreen
+import 'screens/splash_screen.dart'; // 1. Ubah import ke SplashScreen
 
 void main() {
   runApp(const PhotoboothApp());
@@ -12,10 +12,10 @@ class PhotoboothApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Photobooth App',
+      title: 'BloomBooth', 
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const HomeScreen(), // 2. Ganti dari SplashScreen ke HomeScreen
+      theme: AppTheme.light, // Tetap gunakan tema bawaan dari utils
+      home: const SplashScreen(), // 2. Arahkan ke SplashScreen saat awal dibuka
     );
   }
 }
