@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../models/frame_model.dart';
 import '../services/frame_service.dart';
 import '../services/api_client.dart';
-import '../utils/booth_draft.dart';
 import '../utils/theme.dart';
 import '../widgets/state_views.dart';
 import '../widgets/primary_button.dart';
-import 'filter_library_screen.dart';
-
+// UBAH IMPORT: Dari FilterLibraryScreen ke LiveCameraScreen
+import 'live_camera_screen.dart'; 
+// Tambahkan import ini di bagian atas file:
+import '../utils/booth_draft.dart';
 class FrameSelectionScreen extends StatefulWidget {
-  final BoothDraft draft;
+  final BoothDraft draft; // Pastikan draft diterima di sini
   const FrameSelectionScreen({super.key, required this.draft});
 
   @override
@@ -38,14 +39,13 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
             return ErrorView(
               message: snapshot.error is ApiException
                   ? (snapshot.error as ApiException).message
-                  : 'Gagal memuat daftar frame. Periksa koneksi ke backend.',
+                  : 'Gagal memuat daftar frame.',
               onRetry: () => setState(() => _future = FrameService.getAll()),
             );
           }
           final frames = snapshot.data ?? [];
-          if (frames.isEmpty) {
-            return const EmptyView(message: 'Belum ada frame tersedia');
-          }
+          if (frames.isEmpty) return const EmptyView(message: 'Belum ada frame tersedia');
+          
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -80,19 +80,15 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
                             children: [
                               Expanded(
                                 child: Center(
-                                  child: Icon(Icons.filter_frames,
-                                      size: 48, color: AppColors.secondary),
+                                  child: Icon(Icons.filter_frames, size: 48, color: AppColors.secondary),
                                 ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 child: Column(
                                   children: [
-                                    Text(frame.name,
-                                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    Text(frame.layoutType,
-                                        style: const TextStyle(
-                                            fontSize: 12, color: AppColors.textMuted)),
+                                    Text(frame.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    Text(frame.layoutType, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                                   ],
                                 ),
                               ),
@@ -105,19 +101,21 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
                 ),
                 const SizedBox(height: 12),
                 PrimaryButton(
-                  label: 'Lanjut Pilih Filter',
-                  onPressed: _selected == null
-                      ? null
-                      : () {
-                          widget.draft.frameId = _selected!.id;
-                          widget.draft.frameName = _selected!.name;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => FilterLibraryScreen(draft: widget.draft),
-                            ),
-                          );
-                        },
-                ),
+  label: 'Mulai Kamera',
+  onPressed: _selected == null
+      ? null
+      : () {
+          // Pastikan parameter frameId dan shotCount dikirim
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LiveCameraScreen(
+                shotCount: 3, // Hardcode sesuai permintaanmu
+                frameId: _selected!.id.toString(), // Pastikan dikirim sebagai String
+              ),
+            ),
+          );
+        },
+),
               ],
             ),
           );
