@@ -5,14 +5,12 @@ import 'package:image_picker/image_picker.dart';
 import '../utils/theme.dart';
 import '../utils/booth_draft.dart';
 import '../widgets/countdown_overlay.dart';
-import 'live_effects_screen.dart';
-import 'filter_library_screen.dart'; // Navigasi tujuan berikutnya
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LiveCameraScreen extends StatefulWidget {
   final bool embedded;
   final int shotCount;
-  final String frameId; // Menerima ID frame pilihan user dari layar sebelumnya
+  final String frameId; 
 
   const LiveCameraScreen({
     super.key,
@@ -31,21 +29,64 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
   List<CameraDescription> _cameras = [];
   int _cameraIndex = 0;
   bool _showCountdown = false;
-  String _selectedLiveEffect = 'Normal';
   int _selectedCountdown = 3;
   late BoothDraft _draft;
 
-  // State untuk Alur Review & Retake
   bool _isReviewingAll = false;
   int? _retakeIndex;
+
+  // === STATE UNTUK MENU LIVE (FILTER, EFFECT, VIBE) ===
+  String _selectedFilter = 'Normal';
+  String _selectedEffect = 'Normal';
+  String _selectedVibe = 'Normal';
+  double _vibeIntensity = 0.5;
+
+  // Data matrix filter
+  final Map<String, List<double>> _filterMatrices = {
+    'Retro': [
+      0.393, 0.769, 0.189, 0, 0,
+      0.349, 0.686, 0.168, 0, 0,
+      0.272, 0.534, 0.131, 0, 0,
+      0, 0, 0, 1, 0,
+    ],
+    'Mono (B&W)': [
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0, 0, 0, 1, 0,
+    ],
+    'Vivid': [
+      1.2, 0, 0, 0, 0,
+      0, 1.2, 0, 0, 0,
+      0, 0, 1.2, 0, 0,
+      0, 0, 0, 1, 0,
+    ],
+    'Cool': [
+      0.9, 0, 0, 0, 0,
+      0, 0.9, 0, 0, 0,
+      0, 0, 1.2, 0, 0,
+      0, 0, 0, 1, 0,
+    ],
+  };
+
+  // Data efek
+  final _effects = const [
+    {'name': 'Normal', 'icon': Icons.circle_outlined},
+    {'name': 'Sparkle', 'icon': Icons.auto_awesome},
+    {'name': 'Neon Glow', 'icon': Icons.wb_iridescent},
+    {'name': 'Dreamy Blur', 'icon': Icons.blur_on},
+    {'name': 'Retro Grain', 'icon': Icons.movie_filter},
+  ];
+
+  // Dummy Vibe list
+  final _vibes = const ['Normal', 'Warm', 'Studio', 'Cinematic'];
 
   @override
   void initState() {
     super.initState();
     _draft = BoothDraft();
-    _draft.frameId = int.tryParse(widget.frameId); // Simpan frame terpilih ke dalam draft
+    _draft.frameId = int.tryParse(widget.frameId);
     _initCamera();
-    debugPrint("=== LiveCameraScreen Diinisialisasi (Frame ID: ${widget.frameId}) ===");
   }
 
   Future<void> _initCamera() async {
@@ -94,100 +135,252 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
         final file = await _controller!.takePicture();
         capturedFile = File(file.path);
       } else {
-        // Fallback emulator/browser jika tanpa kamera fisik
         final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-        if (picked != null) {
-          capturedFile = File(picked.path);
-        }
+        if (picked != null) capturedFile = File(picked.path);
       }
 
       if (capturedFile != null) {
         setState(() {
           if (_retakeIndex != null) {
-            // MODE RETAKE: Ganti foto lama di indeks terpilih
             _draft.capturedPhotos[_retakeIndex!] = capturedFile!;
             _retakeIndex = null;
-            _isReviewingAll = true; // Kembali ke Grid Review
+            _isReviewingAll = true;
           } else {
-            // MODE NORMAL: Tambahkan foto baru
             _draft.capturedPhotos.add(capturedFile!);
-
-            // Batasan foto dinamis sesuai parameter widget.shotCount (biasanya di-lock 3)
             if (_draft.capturedPhotos.length >= widget.shotCount) {
               _isReviewingAll = true; 
             } else {
-              _captureWithCountdown(); // Otomatis lanjut countdown foto berikutnya
+              _captureWithCountdown();
             }
           }
         });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Gagal mengambil foto: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengambil foto: $e')));
       }
     }
   }
 
-  // Alur lanjut ke FilterLibraryScreen dengan membawa draf foto & frame
   void _goToNextStep() {
-    debugPrint("=== Menuju ke FilterLibraryScreen ===");
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FilterLibraryScreen(draft: _draft),
+    debugPrint("=== Menuju ke Result/Export ===");
+    // Tambahkan navigasi ke layar selanjutnya di sini
+  }
+
+  // ================= MENU TAB BOTTOM SHEET =================
+  void _openStudioMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return DefaultTabController(
+              length: 3,
+              child: Container(
+                height: 300,
+                padding: const EdgeInsets.only(top: 16),
+                child: Column(
+                  children: [
+                    const TabBar(
+                      indicatorColor: AppColors.primary,
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: Colors.white70,
+                      tabs: [
+                        Tab(text: "Filter"),
+                        Tab(text: "Effect"),
+                        Tab(text: "Vibe"),
+                      ],
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          // TAB 1: FILTER
+                          ListView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.all(16),
+                            children: ['Normal', ..._filterMatrices.keys].map((name) {
+                              final isSelected = _selectedFilter == name;
+                              return GestureDetector(
+                                onTap: () {
+                                  setModalState(() => _selectedFilter = name);
+                                  setState(() => _selectedFilter = name); 
+                                },
+                                child: Container(
+                                  width: 80,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.primary.withOpacity(0.2) : Colors.white10,
+                                    border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent, width: 2),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    name,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: isSelected ? AppColors.primary : Colors.white,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+
+                          // TAB 2: EFFECT
+                          ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _effects.length,
+                            itemBuilder: (context, i) {
+                              final effect = _effects[i];
+                              final isSelected = _selectedEffect == effect['name'];
+                              return GestureDetector(
+                                onTap: () {
+                                  setModalState(() => _selectedEffect = effect['name'] as String);
+                                  setState(() => _selectedEffect = effect['name'] as String);
+                                },
+                                child: Container(
+                                  width: 90,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppColors.primary.withOpacity(0.2) : Colors.white10,
+                                    border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent, width: 2),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(effect['icon'] as IconData, color: isSelected ? AppColors.primary : Colors.white),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        effect['name'] as String,
+                                        style: TextStyle(color: isSelected ? AppColors.primary : Colors.white, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+
+                          // TAB 3: VIBE & LIGHTING
+                          Column(
+                            children: [
+                              Expanded(
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount: _vibes.length,
+                                  itemBuilder: (context, i) {
+                                    final vibe = _vibes[i];
+                                    final isSelected = _selectedVibe == vibe;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setModalState(() => _selectedVibe = vibe);
+                                        setState(() => _selectedVibe = vibe);
+                                      },
+                                      child: Container(
+                                        width: 80,
+                                        margin: const EdgeInsets.only(right: 12),
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? AppColors.primary : Colors.white,
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          vibe,
+                                          style: TextStyle(
+                                            color: isSelected ? Colors.white : Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.lightbulb_outline, color: Colors.white70),
+                                    Expanded(
+                                      child: Slider(
+                                        value: _vibeIntensity,
+                                        activeColor: AppColors.primary,
+                                        inactiveColor: Colors.white24,
+                                        onChanged: (val) {
+                                          setModalState(() => _vibeIntensity = val);
+                                          setState(() => _vibeIntensity = val);
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
-  }
-
-  Future<void> _openLiveEffects() async {
-    final selected = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => LiveEffectsScreen(current: _selectedLiveEffect)),
-    );
-    if (selected != null) setState(() => _selectedLiveEffect = selected);
-  }
-
-  // JALUR RETAKE MOBILE: Mengaktifkan ulang kamera
-  Future<void> _startRetakeMobile(int index) async {
-    setState(() {
-      _retakeIndex = index;
-      _isReviewingAll = false;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 150));
-
-    if (_controller != null && _controller!.value.isInitialized) {
-      try {
-        await _controller!.resumePreview();
-      } catch (_) {
-        try {
-          await _controller!.initialize();
-        } catch (_) {}
-      }
-    }
-    _captureWithCountdown();
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("Build berjalan. _isReviewingAll = $_isReviewingAll");
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SizedBox.expand(
         child: Stack(
           children: [
-            // 1. Kamera Preview — Menggunakan Offstage agar elemen <video> di Web tidak dispose
+            // 1. Kamera Preview
             Offstage(
               offstage: _isReviewingAll,
               child: Positioned.fill(child: _buildPreview()),
             ),
 
-            // 2. Banner Retake (Hanya di HP/Mobile saat countdown retake aktif)
+            // ==== 2. FRAME OVERLAY (DINAMIS) ====
+            if (!_isReviewingAll)
+              Positioned.fill(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 2 / 3, 
+                    child: IgnorePointer(
+                      child: Image.asset(
+                        // Mengambil path dinamis berdasarkan frameId yang dipilih user
+                        'assets/frames/${widget.frameId}.png', 
+                        fit: BoxFit.cover,
+                        // Opsional: Error builder jika file frame tidak ditemukan
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.white24,
+                            child: const Center(child: Text("Frame tidak ditemukan")),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // ===================================
+
+            // 3. Banner Retake
             if (_retakeIndex != null && !_isReviewingAll)
               Positioned(
-                top: 90,
-                left: 16,
-                right: 16,
+                top: 90, left: 16, right: 16,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   decoration: BoxDecoration(
@@ -197,37 +390,23 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Mengambil ulang foto ke-${_retakeIndex! + 1}",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
+                      Text("Mengambil ulang foto ke-${_retakeIndex! + 1}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _retakeIndex = null;
-                            _isReviewingAll = true;
-                          });
-                        },
-                        child: const Text(
-                          "Batal",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
+                        onTap: () => setState(() {
+                          _retakeIndex = null;
+                          _isReviewingAll = true;
+                        }),
+                        child: const Text("Batal", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                       )
                     ],
                   ),
                 ),
               ),
 
-            // 3. Header Controls
+            // 4. Header Controls
             if (!_isReviewingAll)
               Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
+                top: 0, left: 0, right: 0,
                 child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -236,17 +415,8 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${_draft.capturedPhotos.length}/${widget.shotCount} foto',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(20)),
+                          child: Text('${_draft.capturedPhotos.length}/${widget.shotCount} foto', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                         ),
                         Row(
                           children: [
@@ -256,8 +426,9 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                               icon: const Icon(Icons.flip_camera_android),
                             ),
                             const SizedBox(width: 8),
+                            // Tombol Studio Menu
                             IconButton.filled(
-                              onPressed: _openLiveEffects,
+                              onPressed: _openStudioMenu,
                               style: IconButton.styleFrom(backgroundColor: Colors.black45),
                               icon: const Icon(Icons.auto_awesome),
                             ),
@@ -269,12 +440,10 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                 ),
               ),
 
-            // 4. Bottom Shutter Controls
+            // 5. Bottom Shutter Controls
             if (!_isReviewingAll)
               Positioned(
-                bottom: 24,
-                left: 0,
-                right: 0,
+                bottom: 24, left: 0, right: 0,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -282,62 +451,30 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                        decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
                         child: Column(
                           children: [
-                            const Text(
-                              "Countdown",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
+                            const Text("Countdown", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 10),
                             Wrap(
                               spacing: 10,
                               children: [
-                                ChoiceChip(
-                                  label: const Text("3 s"),
-                                  selected: _selectedCountdown == 3,
-                                  onSelected: (bool selected) {
-                                    if (selected) setState(() => _selectedCountdown = 3);
-                                  },
-                                ),
-                                ChoiceChip(
-                                  label: const Text("5 s"),
-                                  selected: _selectedCountdown == 5,
-                                  onSelected: (bool selected) {
-                                    if (selected) setState(() => _selectedCountdown = 5);
-                                  },
-                                ),
-                                ChoiceChip(
-                                  label: const Text("10 s"),
-                                  selected: _selectedCountdown == 10,
-                                  onSelected: (bool selected) {
-                                    if (selected) setState(() => _selectedCountdown = 10);
-                                  },
-                                ),
+                                ChoiceChip(label: const Text("3 s"), selected: _selectedCountdown == 3, onSelected: (b) { if(b) setState(() => _selectedCountdown = 3); }),
+                                ChoiceChip(label: const Text("5 s"), selected: _selectedCountdown == 5, onSelected: (b) { if(b) setState(() => _selectedCountdown = 5); }),
+                                ChoiceChip(label: const Text("10 s"), selected: _selectedCountdown == 10, onSelected: (b) { if(b) setState(() => _selectedCountdown = 10); }),
                               ],
                             ),
                           ],
                         ),
                       ),
-
                     GestureDetector(
                       onTap: _showCountdown ? null : _captureWithCountdown,
                       child: Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
+                        width: 76, height: 76,
+                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
                         child: Container(
                           margin: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primary,
-                          ),
+                          decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
                         ),
                       ),
                     ),
@@ -345,20 +482,15 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                 ),
               ),
 
-            // 5. Countdown Overlay
+            // 6. Countdown Overlay
             if (_showCountdown)
               Positioned.fill(
-                child: CountdownOverlay(
-                  seconds: _selectedCountdown,
-                  onFinished: _onCountdownFinished,
-                ),
+                child: CountdownOverlay(seconds: _selectedCountdown, onFinished: _onCountdownFinished),
               ),
 
-            // 6. REVIEW GRID (Murni dipisahkan dengan layout rapi)
+            // 7. REVIEW GRID
             if (_isReviewingAll)
-              Positioned.fill(
-                child: _buildReviewGridOverlay(),
-              ),
+              Positioned.fill(child: _buildReviewGridOverlay()),
           ],
         ),
       ),
@@ -373,22 +505,14 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
           children: [
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                "Review Hasil Foto",
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              child: Text("Review Hasil Foto", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             ),
-            
-            // Grid Foto
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 3 / 4,
+                    crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 2 / 3, // Ubah rasio grid review agar sesuai dengan frame
                   ),
                   itemCount: _draft.capturedPhotos.length,
                   itemBuilder: (context, index) {
@@ -402,11 +526,8 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                                 : Image.file(_draft.capturedPhotos[index], fit: BoxFit.cover),
                           ),
                         ),
-                        
-                        // Tombol Retake (Dipastikan tidak menempel ke area luar)
                         Positioned(
-                          bottom: 8,
-                          right: 8,
+                          bottom: 8, right: 8,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red,
@@ -414,24 +535,16 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 10),
                             ),
                             onPressed: () async {
-  debugPrint("Tombol Retake di indeks $index diklik!");
-  setState(() {
-    _retakeIndex = index;
-    _isReviewingAll = false; // ini yang bikin Offstage jadi false lagi
-  });
-
-  // beri 1 frame supaya widget preview kembali "onstage" dulu
-  await Future.delayed(const Duration(milliseconds: 50));
-
-  if (_controller != null && _controller!.value.isInitialized) {
-    try {
-      await _controller!.resumePreview();
-    } catch (e) {
-      debugPrint('resumePreview gagal/tidak didukung: $e');
-    }
-  }
-  _captureWithCountdown();
-},
+                              setState(() {
+                                _retakeIndex = index;
+                                _isReviewingAll = false; 
+                              });
+                              await Future.delayed(const Duration(milliseconds: 50));
+                              if (_controller != null && _controller!.value.isInitialized) {
+                                try { await _controller!.resumePreview(); } catch (_) {}
+                              }
+                              _captureWithCountdown();
+                            },
                             child: const Text("Retake", style: TextStyle(fontSize: 12)),
                           ),
                         ),
@@ -441,20 +554,12 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                 ),
               ),
             ),
-
-            // Tombol Lanjut
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: ElevatedButton(
-                onPressed: () {
-                  debugPrint("Tombol Lanjut diklik!");
-                  _goToNextStep();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: const Size.fromHeight(56),
-                ),
-                child: const Text("Lanjut ke Filter", style: TextStyle(fontSize: 16)),
+                onPressed: _goToNextStep,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, minimumSize: const Size.fromHeight(56)),
+                child: const Text("Lanjut", style: TextStyle(fontSize: 16)),
               ),
             ),
           ],
@@ -463,62 +568,44 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
     );
   }
 
-  // Tambahkan fungsi pembantu agar logic Retake Web lebih bersih
-  Future<void> _handleWebRetake(int index) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? pickedFile = await picker.pickImage(source: ImageSource.camera);
-      if (pickedFile != null) {
-        setState(() => _draft.capturedPhotos[index] = File(pickedFile.path));
-      }
-    } catch (e) {
-      debugPrint("Gagal retake web: $e");
-    }
-  }
-
+  // ==== PENERAPAN FILTER DAN RASIO 2:3 ====
   Widget _buildPreview() {
     if (_controller == null || _initFuture == null) {
-      return const Center(
-        child: Text(
-          'Kamera tidak terdeteksi.\nGunakan device fisik untuk preview live camera.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white70),
-        ),
-      );
+      return const Center(child: Text('Kamera tidak terdeteksi.', style: TextStyle(color: Colors.white70)));
     }
     return FutureBuilder(
       future: _initFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              double cameraAspectRatio = _controller!.value.aspectRatio;
-              
-              final isPortrait = constraints.maxHeight > constraints.maxWidth;
-              if (isPortrait && cameraAspectRatio > 1.0) {
-                cameraAspectRatio = 1.0 / cameraAspectRatio;
-              }
+          
+          // 1. Dapatkan rasio asli kamera (Pastikan selalu portrait)
+          double cameraAspectRatio = _controller!.value.aspectRatio;
+          if (cameraAspectRatio > 1.0) cameraAspectRatio = 1.0 / cameraAspectRatio;
 
-              double width = constraints.maxWidth;
-              double height = constraints.maxWidth / cameraAspectRatio;
+          // 2. Terapkan filter jika ada
+          Widget cameraWidget = CameraPreview(_controller!);
+          if (_selectedFilter != 'Normal' && _filterMatrices.containsKey(_selectedFilter)) {
+            cameraWidget = ColorFiltered(
+              colorFilter: ColorFilter.matrix(_filterMatrices[_selectedFilter]!),
+              child: cameraWidget,
+            );
+          }
 
-              if (height < constraints.maxHeight) {
-                height = constraints.maxHeight;
-                width = constraints.maxHeight * cameraAspectRatio;
-              }
-
-              return ClipRect(
-                child: OverflowBox(
-                  maxWidth: width,
-                  maxHeight: height,
+          // 3. Kunci tampilan ke rasio 2:3 dan letakkan di tengah layar
+          return Center(
+            child: AspectRatio(
+              aspectRatio: 2 / 3, // <--- KUNCI RASIO 2:3 DI SINI
+              child: ClipRect(
+                child: FittedBox(
+                  fit: BoxFit.cover,
                   child: SizedBox(
-                    width: width,
-                    height: height,
-                    child: CameraPreview(_controller!),
+                    width: 100, // Angka sembarang, FittedBox akan menyesuaikan proporsinya
+                    height: 100 / cameraAspectRatio,
+                    child: cameraWidget,
                   ),
                 ),
-              );
-            },
+              ),
+            ),
           );
         }
         return const Center(child: CircularProgressIndicator(color: AppColors.primary));
