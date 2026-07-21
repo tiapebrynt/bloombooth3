@@ -22,25 +22,64 @@ class _FrameSelectionScreenState extends State<FrameSelectionScreen> {
       body: GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10),
+          crossAxisCount: 2,     // 1. Ubah ke 2 kolom agar frame lebih jelas & tidak kekecilan
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.45, // 2. Rasio pas (tidak terlalu tinggi/jangkung)
+        ),
         itemCount: _frames.length,
         itemBuilder: (ctx, i) {
           final id = _frames[i];
+          final isSelected = _selectedId == id;
+
           return GestureDetector(
             onTap: () => setState(() => _selectedId = id),
-            child: Container(
-              decoration: BoxDecoration(border: Border.all(color: _selectedId == id ? Colors.blue : Colors.grey)),
-              child: Image.asset('assets/frames/$id.png', fit: BoxFit.cover),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? Colors.blue : Colors.transparent,
+                  width: isSelected ? 3 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? Colors.blue.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: isSelected ? 10 : 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              // 3. ClipRRect + BoxFit.cover membuat frame MEMENUHI KARTU tanpa celah kosong
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: Image.asset(
+                  'assets/frames/$id.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
           );
         },
       ),
-      floatingActionButton: _selectedId == null ? null : FloatingActionButton(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(
-          builder: (_) => LiveCameraScreen(shotCount: 3, frameId: _selectedId.toString()),
-        )),
-        child: const Icon(Icons.check),
-      ),
+      floatingActionButton: _selectedId == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LiveCameraScreen(
+                    shotCount: 3,
+                    frameId: _selectedId.toString(),
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.check),
+              label: const Text("Gunakan Frame"),
+            ),
     );
   }
 }
