@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'live_camera_screen.dart';
+import 'booth_home_screen.dart';
 import 'my_gallery_screen.dart';
 import 'app_settings_screen.dart';
 import '../utils/theme.dart';
-import 'home_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -15,13 +14,11 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  // 2. Ganti LiveCameraScreen(embedded: true) dengan HomeScreen()
   final _screens = const [
-    HomeScreen(), // 🟢 SEKARANG JALURNYA BENAR!
+    BoothHomeScreen(),   // <-- sebelumnya LiveCameraScreen(embedded: true)
     MyGalleryScreen(),
     AppSettingsScreen(),
   ];
-
 
   @override
   Widget build(BuildContext context) {
